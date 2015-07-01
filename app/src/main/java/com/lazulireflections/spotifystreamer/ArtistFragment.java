@@ -90,6 +90,8 @@ public class ArtistFragment extends Fragment {
 
     /**
       * Saves the artist list instance so that it can be retrieved when the screen is rotated.
+      *
+      * Saving the activity instance as described on stackoverflow.com
       * @param savedInstanceState Input from the system.
       */
     @Override
@@ -101,6 +103,8 @@ public class ArtistFragment extends Fragment {
     /**
       * Creates the view, if the view is being re-created then the instance that was saved
       * gets loaded.
+      *
+      * Saving the activity instance as described on stackoverflow.com
       * @param savedInstanceState Input from the system.
       */
     @Override
@@ -116,6 +120,8 @@ public class ArtistFragment extends Fragment {
       * This class holds the Artist entity information and makes it parcelable.
       * Artist information consists of the artists name and the URL to the artists
       * image, to be used as a thumbnail.
+      *
+      * Parcelable as part of saving the activity instance as described on stackoverflow.com
       */
     public class Artist implements Parcelable {
         private String m_thumbnailUrl;

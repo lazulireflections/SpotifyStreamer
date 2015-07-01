@@ -71,6 +71,9 @@ public class TopTrackFragment extends Fragment {
         Bundle extras;
         if(intent != null && intent.hasExtra("position")) {
             extras = intent.getExtras();
+            /*
+             * ActionBar subtitle set as described on stackoverflow.com
+             */
             ((ActionBarActivity)getActivity()).getSupportActionBar().setTitle("Top 10 tracks");
             ((ActionBarActivity)getActivity()).getSupportActionBar()
                     .setSubtitle(extras.getString("name"));
@@ -81,6 +84,8 @@ public class TopTrackFragment extends Fragment {
 
     /**
       * Saves the track list instance so that it can be retrieved when the screen is rotated.
+      *
+      * Saving the activity instance as described on stackoverflow.com
       * @param savedInstanceState Input from the system.
       */
     @Override
@@ -92,6 +97,8 @@ public class TopTrackFragment extends Fragment {
     /**
       * Creates the view, if the view is being re-created then the instance that was saved
       * gets loaded.
+      *
+      * Saving the activity instance as described on stackoverflow.com
       * @param savedInstanceState Input from the system.
       */
     @Override
@@ -107,6 +114,8 @@ public class TopTrackFragment extends Fragment {
       * This class holds the Track entity information and makes it parcelable.
       * Track information consists of the track name, album name, the URL to the track
       * image and the URL to the track preview.
+      *
+      * Parcelable as part of saving the activity instance as described on stackoverflow.com
       */
     public class Track implements Parcelable {
         private String m_thumbnailUrl;
