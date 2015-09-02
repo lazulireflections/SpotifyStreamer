@@ -72,7 +72,7 @@ public class TopTrackFragment extends Fragment {
         m_rootView = inflater.inflate(R.layout.fragment_top_track, container, false);
         getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams
                 .SOFT_INPUT_STATE_ALWAYS_HIDDEN);
-        m_topTracksList = new ArrayList<>();
+        m_topTracksList = new ArrayList<TopTracks>();
         if(m_uriArtistNr != null) {
             populateTrackList(m_uriArtistNr.toString(), m_uriArtistName.toString());
         }
@@ -127,7 +127,7 @@ public class TopTrackFragment extends Fragment {
         m_topTracksList.clear();
         SpotifyApi api = new SpotifyApi();
         final SpotifyService spotify = api.getService();
-        HashMap<String, Object> options = new HashMap<>();
+        HashMap<String, Object> options = new HashMap<String, Object>();
         options.put(SpotifyService.COUNTRY, Locale.getDefault().getCountry());
         spotify.getArtistTopTrack(id, options, new Callback<Tracks>() {
             @Override
@@ -180,6 +180,7 @@ public class TopTrackFragment extends Fragment {
                 if(Utility.getTabletLayout()) {
                     playerDialog.show(getFragmentManager(), "player");
                 } else {
+                    Utility.setDialog(playerDialog);
                     getFragmentManager().beginTransaction()
                             .replace(android.R.id.content, playerDialog).commit();
                 }

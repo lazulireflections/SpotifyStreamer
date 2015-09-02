@@ -1,5 +1,10 @@
 package com.lazulireflections.spotifystreamer.Utilities;
 
+
+import android.support.v7.app.ActionBar;
+
+import com.lazulireflections.spotifystreamer.PlayerDialog;
+
 import java.util.List;
 
 import kaaes.spotify.webapi.android.models.Image;
@@ -10,6 +15,7 @@ import kaaes.spotify.webapi.android.models.Image;
  */
 public class Utility {
     private static boolean m_TabletLayout;
+    private static PlayerDialog m_dialog;
 
     /**
      * To determine if the phone layout or the tablet layout is to be used.
@@ -47,5 +53,13 @@ public class Utility {
             url = "https://lh3.googleusercontent.com/-edYeK6MZ4wk/VY1yOp5vu5I/AAAAAAAAAXE/WNNAlS9rRBA/s65/placeholder.png";
         }
         return url;
+    }
+
+    public static void setDialog(PlayerDialog dialog){
+        m_dialog = dialog;
+    }
+
+    public static PlayerDialog getDialog() {
+        return m_dialog;
     }
 }

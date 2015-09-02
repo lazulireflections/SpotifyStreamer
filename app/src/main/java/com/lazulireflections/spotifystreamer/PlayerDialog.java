@@ -1,5 +1,6 @@
 package com.lazulireflections.spotifystreamer;
 
+import android.support.v7.app.ActionBar;
 import android.app.Dialog;
 import android.app.DialogFragment;
 import android.content.DialogInterface;
@@ -21,6 +22,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.lazulireflections.spotifystreamer.Utilities.TopTracks;
+import com.lazulireflections.spotifystreamer.Utilities.Utility;
 import com.squareup.picasso.Picasso;
 
 import java.io.IOException;
@@ -46,16 +48,21 @@ public class PlayerDialog extends DialogFragment {
     private ImageButton m_previousButton;
     private ImageButton m_playPauseButton;
     private ImageButton m_nextButton;
+    private int m_trackIndex;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         m_rootView = inflater.inflate(R.layout.dialog_player, container, false);
-        int position = getArguments().getInt("location");
+        if(savedInstanceState != null) {
+            m_trackIndex = savedInstanceState.getInt("track_index");
+        } else {
+            m_trackIndex = getArguments().getInt("location");
+        }
         ArrayList<TopTracks> m_topTracks = getArguments().getParcelableArrayList("tracklist");
         String artistName = getArguments().getString("artistname");
         initializeDialog();
-        populateDialog(position, m_topTracks, artistName);
+        populateDialog(m_trackIndex, m_topTracks, artistName);
         return m_rootView;
     }
 
@@ -63,7 +70,27 @@ public class PlayerDialog extends DialogFragment {
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         Dialog dialog = super.onCreateDialog(savedInstanceState);
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.getActionBar().hide();
         return dialog;
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        m_mediaPlayer.stop();
+    }
+
+    /**
+     * Saves the track list instance so that it can be retrieved when the screen is rotated.
+     *
+     * Saving the activity instance as described on stackoverflow.com
+     * @param savedInstanceState Input from the system.
+     */
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        super.onSaveInstanceState(savedInstanceState);
+        m_mediaPlayer.stop();
+        savedInstanceState.putInt("track_index", m_trackIndex);
     }
 
     /**
@@ -185,18 +212,20 @@ public class PlayerDialog extends DialogFragment {
      */
     public void populateDialog(final int position, final ArrayList<TopTracks> artistList,
                                final String artistName) {
-
+        m_trackIndex = position;
         m_mediaPlayer = new MediaPlayer();
         m_mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         try {
-            m_mediaPlayer.setDataSource(m_rootView.getContext(), Uri.parse(artistList.get(position).getPreviewUrl()));
+            m_mediaPlayer.stop();
+            m_mediaPlayer.setDataSource(m_rootView.getContext(),
+                    Uri.parse(artistList.get(position).getPreviewUrl()));
             m_mediaPlayer.prepare();
             m_playing = true;
             m_mediaPlayer.start();
             new BackgroundThread().execute();
         } catch (IOException e) {
             e.printStackTrace();
-        }
+        } 
         m_artistNameTextView.setText(artistName);
         m_albumNameTextView.setText(artistList.get(position).getAlbum());
         Picasso.with(m_rootView.getContext()).load(artistList.get(position).getThumbnailURL())

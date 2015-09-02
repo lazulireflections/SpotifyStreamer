@@ -5,8 +5,15 @@
 
 package com.lazulireflections.spotifystreamer;
 
+import android.app.ActionBar;
+import android.app.Dialog;
+import android.app.DialogFragment;
+import android.support.v4.app.NavUtils;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.view.MenuItem;
+
+import com.lazulireflections.spotifystreamer.Utilities.Utility;
 
 /**
   * Activity class for the top 10 track activity, displaying the top 10 tracks for
@@ -31,5 +38,21 @@ public class TopTrackActivity extends ActionBarActivity {
             getFragmentManager().beginTransaction()
                     .add(R.id.top_track_container, topTrackFragment).commit();
         }
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            // Respond to the action bar's Up/Home button
+            case android.R.id.home:
+                if(Utility.getDialog() != null) {
+                    Utility.getDialog().dismiss();
+                    Utility.setDialog(null);
+                } else {
+                    NavUtils.navigateUpFromSameTask(this);
+                }
+                return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 }

@@ -84,12 +84,12 @@ public class ArtistFragment extends Fragment {
      */
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                                 Bundle savedInstanceState) {
+                                 Bundle savedInstanceState)     {
         m_rootView = inflater.inflate(R.layout.fragment_main, container, false);
         getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams
                 .SOFT_INPUT_STATE_ALWAYS_HIDDEN);
 
-        m_artistList = new ArrayList<>();
+        m_artistList = new ArrayList<Artist>();
 
         SearchView m_search = (SearchView) m_rootView.findViewById(R.id.search);
 
