@@ -5,9 +5,6 @@
 
 package com.lazulireflections.spotifystreamer;
 
-import android.app.ActionBar;
-import android.app.Dialog;
-import android.app.DialogFragment;
 import android.support.v4.app.NavUtils;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
@@ -40,10 +37,16 @@ public class TopTrackActivity extends ActionBarActivity {
         }
     }
 
+    /**
+     * Make sure that when the up button is pressed that the top track list
+     * is displayed if the dialog is open and the artist list is displayed
+     * if the top track list is open.
+     * @param item Input from system.
+     * @return Returns the return value from the super class.
+     */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            // Respond to the action bar's Up/Home button
             case android.R.id.home:
                 if(Utility.getDialog() != null) {
                     Utility.getDialog().dismiss();

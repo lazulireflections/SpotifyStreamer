@@ -1,6 +1,6 @@
 package com.lazulireflections.spotifystreamer;
 
-import android.support.v7.app.ActionBar;
+import android.support.annotation.NonNull;
 import android.app.Dialog;
 import android.app.DialogFragment;
 import android.content.DialogInterface;
@@ -50,14 +50,21 @@ public class PlayerDialog extends DialogFragment {
     private ImageButton m_nextButton;
     private int m_trackIndex;
 
+    private BackgroundThread m_thread;
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         m_rootView = inflater.inflate(R.layout.dialog_player, container, false);
         if(savedInstanceState != null) {
             m_trackIndex = savedInstanceState.getInt("track_index");
+            m_trackPosition = savedInstanceState.getInt("track_position", m_trackPosition);
+            if(!Utility.getTabletLayout()) {
+                Utility.setDialog(this);
+            }
         } else {
             m_trackIndex = getArguments().getInt("location");
+            m_trackPosition = 0;
         }
         ArrayList<TopTracks> m_topTracks = getArguments().getParcelableArrayList("tracklist");
         String artistName = getArguments().getString("artistname");
@@ -70,14 +77,23 @@ public class PlayerDialog extends DialogFragment {
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         Dialog dialog = super.onCreateDialog(savedInstanceState);
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        dialog.getActionBar().hide();
+        if(!Utility.getTabletLayout()) {
+            dialog.getActionBar().hide();
+        }
         return dialog;
     }
 
+    /**
+     * Make sure to stop playback when killing the dialog.
+     */
     @Override
     public void onStop() {
         super.onStop();
-        m_mediaPlayer.stop();
+        m_playing = false;
+        if(m_mediaPlayer != null) {
+            m_mediaPlayer.stop();
+        }
+        m_thread.cancel(true);
     }
 
     /**
@@ -87,10 +103,12 @@ public class PlayerDialog extends DialogFragment {
      * @param savedInstanceState Input from the system.
      */
     @Override
-    public void onSaveInstanceState(Bundle savedInstanceState) {
+    public void onSaveInstanceState(@NonNull Bundle savedInstanceState) {
         super.onSaveInstanceState(savedInstanceState);
         m_mediaPlayer.stop();
+        m_thread.cancel(true);
         savedInstanceState.putInt("track_index", m_trackIndex);
+        savedInstanceState.putInt("track_position", m_trackPosition);
     }
 
     /**
@@ -102,6 +120,7 @@ public class PlayerDialog extends DialogFragment {
     public void onCancel(DialogInterface dialogInterface) {
         super.onCancel(dialogInterface);
         m_mediaPlayer.stop();
+        m_thread.cancel(true);
         m_mediaPlayer.release();
         m_mediaPlayer = null;
     }
@@ -115,7 +134,7 @@ public class PlayerDialog extends DialogFragment {
         if(dm.heightPixels < m_layoutSegments) {
             m_layoutSegments = dm.heightPixels;
         }
-        m_layoutSegments = m_layoutSegments / 120;
+        m_layoutSegments = m_layoutSegments / 140;
 
         LinearLayout playerMainLayout = (LinearLayout) m_rootView
                 .findViewById(R.id.player_layout_container);
@@ -217,15 +236,22 @@ public class PlayerDialog extends DialogFragment {
         m_mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         try {
             m_mediaPlayer.stop();
+            if(m_thread != null) {
+                m_thread.cancel(true);
+            }
             m_mediaPlayer.setDataSource(m_rootView.getContext(),
                     Uri.parse(artistList.get(position).getPreviewUrl()));
             m_mediaPlayer.prepare();
             m_playing = true;
+            if(m_trackPosition != 0) {
+                m_mediaPlayer.seekTo(m_trackPosition * 1000);
+            }
             m_mediaPlayer.start();
-            new BackgroundThread().execute();
+            m_thread = new BackgroundThread();
+            m_thread.execute();
         } catch (IOException e) {
             e.printStackTrace();
-        } 
+        }
         m_artistNameTextView.setText(artistName);
         m_albumNameTextView.setText(artistList.get(position).getAlbum());
         Picasso.with(m_rootView.getContext()).load(artistList.get(position).getThumbnailURL())
@@ -245,6 +271,7 @@ public class PlayerDialog extends DialogFragment {
                 m_playPauseButton.setImageResource(android.R.drawable.ic_media_play);
                 m_playPauseButton.setTag(android.R.drawable.ic_media_play);
                 m_mediaPlayer.stop();
+                m_thread.cancel(true);
                 if (position == 0) {
                     populateDialog(artistList.size() - 1, artistList, artistName);
                 } else {
@@ -258,6 +285,7 @@ public class PlayerDialog extends DialogFragment {
                 m_playPauseButton.setImageResource(android.R.drawable.ic_media_play);
                 m_playPauseButton.setTag(android.R.drawable.ic_media_play);
                 m_mediaPlayer.stop();
+                m_thread.cancel(true);
                 if (position == artistList.size() - 1) {
                     populateDialog(0, artistList, artistName);
                 } else {

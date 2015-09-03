@@ -89,7 +89,7 @@ public class TopTrackFragment extends Fragment {
     public void onSaveInstanceState(Bundle savedInstanceState) {
         super.onSaveInstanceState(savedInstanceState);
         savedInstanceState.putParcelableArrayList("track_fragment", m_topTracksList);
-        if(m_uriArtistName.toString() != null || m_uriArtistNr.toString() != null) {
+        if(m_uriArtistName != null || m_uriArtistNr != null) {
             savedInstanceState.putString("artistname", m_uriArtistName.toString());
             savedInstanceState.putString("artistnr", m_uriArtistNr.toString());
         }

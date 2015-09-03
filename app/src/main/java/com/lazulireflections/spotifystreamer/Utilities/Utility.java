@@ -1,8 +1,5 @@
 package com.lazulireflections.spotifystreamer.Utilities;
 
-
-import android.support.v7.app.ActionBar;
-
 import com.lazulireflections.spotifystreamer.PlayerDialog;
 
 import java.util.List;
@@ -55,10 +52,18 @@ public class Utility {
         return url;
     }
 
+    /**
+     * Sets the player dialog so that it is accessible from other parts of the app.
+     * @param dialog The player dialog handling media playback.
+     */
     public static void setDialog(PlayerDialog dialog){
         m_dialog = dialog;
     }
 
+    /**
+     * Get the player dialog that is handling media playback.
+     * @return Player dialog handling media playback.
+     */
     public static PlayerDialog getDialog() {
         return m_dialog;
     }
