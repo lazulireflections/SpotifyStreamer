@@ -44,6 +44,7 @@ public class PlayerDialog extends DialogFragment {
     private ImageView m_albumImageImageView;
     private TextView m_trackNameTextView;
     private SeekBar m_progressScrubBar;
+    private TextView m_trackPositionTextView;
     private TextView m_trackLengthTextView;
     private ImageButton m_previousButton;
     private ImageButton m_playPauseButton;
@@ -56,6 +57,7 @@ public class PlayerDialog extends DialogFragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         m_rootView = inflater.inflate(R.layout.dialog_player, container, false);
+        m_trackPositionTextView = (TextView) m_rootView.findViewById(R.id.player_track_position);
         if(savedInstanceState != null) {
             m_trackIndex = savedInstanceState.getInt("track_index");
             m_trackPosition = savedInstanceState.getInt("track_position", m_trackPosition);
@@ -106,7 +108,6 @@ public class PlayerDialog extends DialogFragment {
     public void onSaveInstanceState(@NonNull Bundle savedInstanceState) {
         super.onSaveInstanceState(savedInstanceState);
         m_mediaPlayer.stop();
-        m_thread.cancel(true);
         savedInstanceState.putInt("track_index", m_trackIndex);
         savedInstanceState.putInt("track_position", m_trackPosition);
     }
@@ -174,15 +175,12 @@ public class PlayerDialog extends DialogFragment {
                 if (m_mediaPlayer != null && fromUser) {
                     m_trackPosition = (int) (((double) m_duration / (double) m_progressScrubBar.getMax()) * (double) progress);
                     m_mediaPlayer.seekTo(m_trackPosition * 1000);
-                    updateScrub();
                 }
             }
         });
 
-        TextView trackStartTimeTextView = (TextView) m_rootView.findViewById(R.id.player_start_time);
-        trackStartTimeTextView.setText("00:00");
-        trackStartTimeTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX, m_layoutSegments * 4);
-        trackStartTimeTextView.setPadding(0, 0, 0, 0);
+        m_trackPositionTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX, m_layoutSegments * 4);
+        m_trackPositionTextView.setPadding(0, 0, 0, 0);
 
         m_trackLengthTextView = (TextView)m_rootView.findViewById(R.id.player_track_length);
         m_trackLengthTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX, m_layoutSegments * 4);
@@ -236,9 +234,6 @@ public class PlayerDialog extends DialogFragment {
         m_mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         try {
             m_mediaPlayer.stop();
-            if(m_thread != null) {
-                m_thread.cancel(true);
-            }
             m_mediaPlayer.setDataSource(m_rootView.getContext(),
                     Uri.parse(artistList.get(position).getPreviewUrl()));
             m_mediaPlayer.prepare();
@@ -247,8 +242,10 @@ public class PlayerDialog extends DialogFragment {
                 m_mediaPlayer.seekTo(m_trackPosition * 1000);
             }
             m_mediaPlayer.start();
-            m_thread = new BackgroundThread();
-            m_thread.execute();
+            if(m_thread == null) {
+                m_thread = new BackgroundThread();
+                m_thread.execute();
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -271,7 +268,6 @@ public class PlayerDialog extends DialogFragment {
                 m_playPauseButton.setImageResource(android.R.drawable.ic_media_play);
                 m_playPauseButton.setTag(android.R.drawable.ic_media_play);
                 m_mediaPlayer.stop();
-                m_thread.cancel(true);
                 if (position == 0) {
                     populateDialog(artistList.size() - 1, artistList, artistName);
                 } else {
@@ -285,7 +281,6 @@ public class PlayerDialog extends DialogFragment {
                 m_playPauseButton.setImageResource(android.R.drawable.ic_media_play);
                 m_playPauseButton.setTag(android.R.drawable.ic_media_play);
                 m_mediaPlayer.stop();
-                m_thread.cancel(true);
                 if (position == artistList.size() - 1) {
                     populateDialog(0, artistList, artistName);
                 } else {
@@ -303,8 +298,30 @@ public class PlayerDialog extends DialogFragment {
         {
             m_progressScrubBar.setProgress(0);
         } else {
-            m_progressScrubBar.setProgress((int)((double)m_trackPosition *
-                    ((double)m_progressScrubBar.getMax() / (double)m_duration)));
+            m_progressScrubBar.setProgress((int) ((double) m_trackPosition *
+                    ((double) m_progressScrubBar.getMax() / (double) m_duration)));
+        }
+    }
+
+    /**
+     * Updateing the track position text
+     */
+    private void updateTrackPosition() {
+        if (m_trackPosition == 0) {
+            m_trackPositionTextView.setText("00:00");
+        } else {
+            int sec = m_trackPosition % 60;
+            int min = (m_trackPosition - sec) / 60;
+            String durationString = "";
+            if(min < 10) {
+                durationString = "0";
+            }
+            durationString = durationString + min + ":";
+            if(sec < 10) {
+                durationString = durationString + "0";
+            }
+            durationString = durationString + sec;
+            m_trackPositionTextView.setText(durationString);
         }
     }
 
@@ -318,6 +335,7 @@ public class PlayerDialog extends DialogFragment {
                 if (m_mediaPlayer != null) {
                     m_trackPosition = m_mediaPlayer.getCurrentPosition() / 1000;
                     updateScrub();
+                    publishProgress();
                 }
             }
             return null;
@@ -330,12 +348,11 @@ public class PlayerDialog extends DialogFragment {
 
         @Override
         protected void onPreExecute() {
-
         }
 
         @Override
         protected void onProgressUpdate(Void... values) {
-
+            updateTrackPosition();
         }
     }
 }

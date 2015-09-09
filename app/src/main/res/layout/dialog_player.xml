@@ -44,7 +44,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="start"
-            android:id="@+id/player_start_time"  />
+            android:id="@+id/player_track_position"  />
 
         <TextView
             android:layout_width="0dp"
