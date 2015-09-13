@@ -73,8 +73,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:id="@+id/player_play_pause"
-            android:src="@android:drawable/ic_media_play"
-            android:tag="ic_media_play"
+            android:src="@android:drawable/ic_media_pause"
+            android:tag="ic_media_pause"
             android:clickable="true"
             android:contentDescription="@string/player_play_pause" />
 

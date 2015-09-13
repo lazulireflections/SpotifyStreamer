@@ -64,7 +64,6 @@ public class TopTrackFragment extends Fragment {
 
         Bundle arguments = getArguments();
         if(arguments != null) {
-
             m_uriArtistNr = arguments.getParcelable(TOP_TRACK_URI);
             m_uriArtistName = arguments.getParcelable(TOP_TRACK_ARTIST_NAME_URI);
         }
@@ -73,8 +72,12 @@ public class TopTrackFragment extends Fragment {
         getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams
                 .SOFT_INPUT_STATE_ALWAYS_HIDDEN);
         m_topTracksList = new ArrayList<TopTracks>();
-        if(m_uriArtistNr != null) {
-            populateTrackList(m_uriArtistNr.toString(), m_uriArtistName.toString());
+        if(savedInstanceState == null) {
+            if (m_uriArtistNr != null) {
+                populateTrackList(m_uriArtistNr.toString(), m_uriArtistName.toString());
+            }
+        } else {
+            m_topTracksList = savedInstanceState.getParcelableArrayList("track_fragment");
         }
         return m_rootView;
     }

@@ -1,5 +1,7 @@
 package com.lazulireflections.spotifystreamer;
 
+import android.annotation.TargetApi;
+import android.os.Build;
 import android.support.annotation.NonNull;
 import android.app.Dialog;
 import android.app.DialogFragment;
@@ -31,10 +33,11 @@ import java.util.ArrayList;
 /**
  * Dialog class for the media player dialog.
  */
-public class PlayerDialog extends DialogFragment {
+public class PlayerDialog extends DialogFragment implements MediaPlayer.OnPreparedListener {
     private View m_rootView;
     private MediaPlayer m_mediaPlayer;
     private boolean m_playing;
+    private boolean m_paused;
     private int m_layoutSegments;
     private int m_duration;
     private int m_trackPosition;
@@ -61,12 +64,14 @@ public class PlayerDialog extends DialogFragment {
         if(savedInstanceState != null) {
             m_trackIndex = savedInstanceState.getInt("track_index");
             m_trackPosition = savedInstanceState.getInt("track_position", m_trackPosition);
+            m_paused = savedInstanceState.getBoolean("track_paused");
             if(!Utility.getTabletLayout()) {
                 Utility.setDialog(this);
             }
         } else {
             m_trackIndex = getArguments().getInt("location");
             m_trackPosition = 0;
+            m_paused = false;
         }
         ArrayList<TopTracks> m_topTracks = getArguments().getParcelableArrayList("tracklist");
         String artistName = getArguments().getString("artistname");
@@ -81,6 +86,9 @@ public class PlayerDialog extends DialogFragment {
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         if(!Utility.getTabletLayout()) {
             dialog.getActionBar().hide();
+        }
+        if(m_paused) {
+            m_mediaPlayer.pause();
         }
         return dialog;
     }
@@ -110,6 +118,7 @@ public class PlayerDialog extends DialogFragment {
         m_mediaPlayer.stop();
         savedInstanceState.putInt("track_index", m_trackIndex);
         savedInstanceState.putInt("track_position", m_trackPosition);
+        savedInstanceState.putBoolean("track_paused", m_paused);
     }
 
     /**
@@ -121,7 +130,9 @@ public class PlayerDialog extends DialogFragment {
     public void onCancel(DialogInterface dialogInterface) {
         super.onCancel(dialogInterface);
         m_mediaPlayer.stop();
-        m_thread.cancel(true);
+        if(m_thread != null) {
+            m_thread.cancel(true);
+        }
         m_mediaPlayer.release();
         m_mediaPlayer = null;
     }
@@ -163,7 +174,6 @@ public class PlayerDialog extends DialogFragment {
         m_progressScrubBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-
             }
 
             @Override
@@ -196,20 +206,20 @@ public class PlayerDialog extends DialogFragment {
         m_playPauseButton.setPadding(0, m_layoutSegments, 0, m_layoutSegments);
         m_playPauseButton.setMinimumWidth(m_layoutSegments * 12);
         m_playPauseButton.setMaxWidth(m_layoutSegments * 12);
-        m_playPauseButton.setTag(android.R.drawable.ic_media_play);
+        m_playPauseButton.setTag(android.R.drawable.ic_media_pause);
         m_playPauseButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (Integer.parseInt(m_playPauseButton.getTag().toString()) ==
-                        android.R.drawable.ic_media_play) {
-                    m_playPauseButton.setImageResource(android.R.drawable.ic_media_pause);
-                    m_playPauseButton.setTag(android.R.drawable.ic_media_pause);
-                    m_playing = false;
-                    m_mediaPlayer.pause();
-                } else {
+                        android.R.drawable.ic_media_pause || !m_paused) {
                     m_playPauseButton.setImageResource(android.R.drawable.ic_media_play);
                     m_playPauseButton.setTag(android.R.drawable.ic_media_play);
-                    m_playing = true;
+                    m_paused = true;
+                    m_mediaPlayer.pause();
+                } else {
+                    m_playPauseButton.setImageResource(android.R.drawable.ic_media_pause);
+                    m_playPauseButton.setTag(android.R.drawable.ic_media_pause);
+                    m_paused = false;
                     m_mediaPlayer.start();
                 }
             }
@@ -223,30 +233,27 @@ public class PlayerDialog extends DialogFragment {
 
     /**
      * Fill in the display data into the dialog's views.
+     *
+     * Was unable to recreate the crash on previous/next track prepare(), but with help from
+     * stacktrace.com I hope to have fixed it.
      * @param position Position of the selected track.
      * @param artistList List of tracks for the selected artist.
      * @param artistName Name of the selected artist.
      */
+    @TargetApi(Build.VERSION_CODES.KITKAT)
     public void populateDialog(final int position, final ArrayList<TopTracks> artistList,
                                final String artistName) {
         m_trackIndex = position;
         m_mediaPlayer = new MediaPlayer();
+        m_mediaPlayer.setOnPreparedListener(this);
         m_mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         try {
             m_mediaPlayer.stop();
+            m_mediaPlayer.reset();
             m_mediaPlayer.setDataSource(m_rootView.getContext(),
                     Uri.parse(artistList.get(position).getPreviewUrl()));
-            m_mediaPlayer.prepare();
-            m_playing = true;
-            if(m_trackPosition != 0) {
-                m_mediaPlayer.seekTo(m_trackPosition * 1000);
-            }
-            m_mediaPlayer.start();
-            if(m_thread == null) {
-                m_thread = new BackgroundThread();
-                m_thread.execute();
-            }
-        } catch (IOException e) {
+            m_mediaPlayer.prepareAsync();
+        } catch (IOException | IllegalStateException e) {
             e.printStackTrace();
         }
         m_artistNameTextView.setText(artistName);
@@ -256,17 +263,11 @@ public class PlayerDialog extends DialogFragment {
                 .centerCrop().into(m_albumImageImageView);
         m_trackNameTextView.setText(artistList.get(position).getTrack());
 
-        m_duration = m_mediaPlayer.getDuration() / 1000;
-        int sec = m_duration % 60;
-        int min = (m_duration - sec) / 60;
-        String durationString = min + ":" + sec;
-        m_trackLengthTextView.setText(durationString);
-
         m_previousButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                m_playPauseButton.setImageResource(android.R.drawable.ic_media_play);
-                m_playPauseButton.setTag(android.R.drawable.ic_media_play);
+                m_playPauseButton.setImageResource(android.R.drawable.ic_media_pause);
+                m_playPauseButton.setTag(android.R.drawable.ic_media_pause);
                 m_mediaPlayer.stop();
                 if (position == 0) {
                     populateDialog(artistList.size() - 1, artistList, artistName);
@@ -278,8 +279,8 @@ public class PlayerDialog extends DialogFragment {
         m_nextButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                m_playPauseButton.setImageResource(android.R.drawable.ic_media_play);
-                m_playPauseButton.setTag(android.R.drawable.ic_media_play);
+                m_playPauseButton.setImageResource(android.R.drawable.ic_media_pause);
+                m_playPauseButton.setTag(android.R.drawable.ic_media_pause);
                 m_mediaPlayer.stop();
                 if (position == artistList.size() - 1) {
                     populateDialog(0, artistList, artistName);
@@ -288,6 +289,32 @@ public class PlayerDialog extends DialogFragment {
                 }
             }
         });
+    }
+
+    @Override
+    public void onPrepared(MediaPlayer mp) {
+        m_playing = true;
+        if(m_trackPosition != 0) {
+            m_mediaPlayer.seekTo(m_trackPosition * 1000);
+        }
+        if(m_paused) {
+            m_mediaPlayer.start();
+            m_mediaPlayer.pause();
+            m_playPauseButton.setImageResource(android.R.drawable.ic_media_play);
+            m_playPauseButton.setTag(android.R.drawable.ic_media_play);
+        } else {
+            m_mediaPlayer.start();
+        }
+        if(m_thread == null) {
+            m_thread = new BackgroundThread();
+            m_thread.execute();
+        }
+
+        m_duration = m_mediaPlayer.getDuration() / 1000;
+        int sec = m_duration % 60;
+        int min = (m_duration - sec) / 60;
+        String durationString = min + ":" + sec;
+        m_trackLengthTextView.setText(durationString);
     }
 
     /**
@@ -334,7 +361,6 @@ public class PlayerDialog extends DialogFragment {
             while(m_playing) {
                 if (m_mediaPlayer != null) {
                     m_trackPosition = m_mediaPlayer.getCurrentPosition() / 1000;
-                    updateScrub();
                     publishProgress();
                 }
             }
@@ -352,6 +378,7 @@ public class PlayerDialog extends DialogFragment {
 
         @Override
         protected void onProgressUpdate(Void... values) {
+            updateScrub();
             updateTrackPosition();
         }
     }
